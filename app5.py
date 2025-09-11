@@ -240,7 +240,7 @@ input_product = {
 # ------------------------------
 # Priority scoring function (unchanged)
 # ------------------------------
-def calculate_priority_score_bazan(df, input_product):
+def calculate_priority_score(df, input_product):
     """
     Enhanced priority scoring with robust string matching
     """

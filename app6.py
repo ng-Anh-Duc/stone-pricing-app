@@ -294,42 +294,36 @@ def calculate_priority_score_bazan(df, input_product):
         'U3': lambda v: abs(float(v) - input_product['kich_thuoc']['H']) <= 2.0
     }
 
-    # AREA-BASED SCORING - This is the key change!
-    def calculate_area_score(row_w, row_l, input_w, input_l, max_score=12):
+    # L-W-DISTANCE-BASED SCORING - This is the key change!
+    def calculate_lwDistance_score(row_w, row_l, max_score=12):
         """
-        Calculate score based on AREA similarity (W × L)
+        Calculate score based on distance of L and W
         NOT based on individual width/length matching
         """
         try:
-            # Calculate areas
-            input_area = input_w * input_l  # Input product area
-            row_area = float(row_w) * float(row_l)  # Database product area
+            # # Calculate areas
+            # input_area = input_w * input_l  # Input product area
+            # row_area = float(row_w) * float(row_l)  # Database product area
             
-            # Calculate area difference
-            area_difference = abs(input_area - row_area)
+            # Calculate difference
+            difference = abs(row_l - row_w)
             
-            # Calculate percentage difference for fair scoring
-            if input_area > 0:
-                area_diff_percent = abs(area_difference / input_area)
-            else:
-                return 0
-            
-            # Score based on area similarity (smaller area difference = higher score)
-            if area_diff_percent < 1:  # Less than 1% area difference
+            # Score based on distance similarity
+            if difference < 1:  # Less than 1% area difference
                 return max_score
-            elif area_diff_percent <= 5:
+            elif difference <= 5:
                 return max_score * 0.95
-            elif area_diff_percent <= 10:
+            elif difference <= 10:
                 return max_score * 0.85
-            elif area_diff_percent <= 20:
+            elif difference <= 20:
                 return max_score * 0.7
-            elif area_diff_percent <= 30:
+            elif difference <= 30:
                 return max_score * 0.55
-            elif area_diff_percent <= 50:
+            elif difference <= 50:
                 return max_score * 0.4
-            elif area_diff_percent <= 75:
+            elif difference <= 75:
                 return max_score * 0.25
-            elif area_diff_percent <= 100:
+            elif difference <= 100:
                 return max_score * 0.15
             else:
                 return max_score * 0.05
@@ -382,15 +376,15 @@ def calculate_priority_score_bazan(df, input_product):
             except:
                 continue
         
-        # AREA-BASED SCORING - This replaces width and length individual scoring
+        # LW DISTANCE-BASED SCORING - This replaces width and length individual scoring
         if pd.notna(r['W']) and pd.notna(r['L']):
-            area_score = calculate_area_score(
+            lwDistance_score = calculate_lwDistance_score(
                 r['W'], r['L'],  # Database product dimensions
-                input_product['kich_thuoc']['W'],  # Input width
-                input_product['kich_thuoc']['L'],  # Input length
+                # input_product['kich_thuoc']['W'],  # Input width
+                # input_product['kich_thuoc']['L'],  # Input length
                 max_score=12  # Total points for area similarity
             )
-            s += area_score
+            s += lwDistance_score
                 
         return s
     
