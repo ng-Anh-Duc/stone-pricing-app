@@ -70,8 +70,9 @@ def get_custom_css():
         .streaming-text {{
             color: {theme_color};
             font-family: 'Courier New', monospace;
-            font-size: 14px;
             line-height: 1.5;
+            font-size: 20px;
+            font-weight: 600;
         }}
     </style>
     """

@@ -6,11 +6,16 @@ import numpy as np
 import plotly.graph_objects as go
 import streamlit as st
 from sklearn.linear_model import LinearRegression
+import pandas as pd
 
 from utils.data_loader import filter_data
 from utils.scoring import calculate_priority_score
 from utils.ui_helpers import stream_text, calculate_prediction_results, format_prediction_text
 from config.settings import UI_CONFIG
+
+def apply_price_transformation(raw_price):
+    """Apply the price transformation formula: (output + 8) * 10 / 0.8"""
+    return raw_price + (7 * 10) / 0.8
 
 def create_scatter_plot(filtered_df):
     """Create scatter plot with prediction line."""
@@ -19,7 +24,7 @@ def create_scatter_plot(filtered_df):
     # Add scatter points
     fig.add_trace(go.Scatter(
         x=filtered_df['priority_score'],
-        y=filtered_df['usd_m2'],
+        y=filtered_df['usd_m3'],
         mode='markers',
         marker=dict(size=10, color='blue', opacity=0.6),
         text=filtered_df['product_code'],
@@ -29,12 +34,12 @@ def create_scatter_plot(filtered_df):
     ))
     
     # Add linear regression line if we have enough data
-    if len(filtered_df) > 1 and not filtered_df['usd_m2'].isna().all():
-        clean_data = filtered_df.dropna(subset=['priority_score', 'W', 'L', 'usd_m2'])
+    if len(filtered_df) > 1 and not filtered_df['usd_m3'].isna().all():
+        clean_data = filtered_df.dropna(subset=['priority_score', 'W', 'L', 'usd_m3'])
         if len(clean_data) > 3:
             lr = LinearRegression()
             X = clean_data[['priority_score', 'W', 'L']]
-            y = clean_data['usd_m2']
+            y = clean_data['usd_m3']
             lr.fit(X, y)
 
             # Store the model in session state for later use
@@ -80,7 +85,7 @@ def create_scatter_plot(filtered_df):
     fig.update_layout(
         title="Priority Score vs Product Analysis",
         xaxis_title="Priority Score",
-        yaxis_title="Price (USD/m²)",
+        yaxis_title="Price (USD/m³)",
         height=500,
         template="plotly_white"
     )
@@ -131,7 +136,7 @@ def render_processing_stage(df):
             # Show filtered table
             st.markdown("### Filtered Product Database")
             st.dataframe(
-                filtered_df[['product_code', 'loai_da', 'gia_cong', 'H', 'W', 'L', 'usd_m2', 'priority_score']], 
+                filtered_df[['product_code', 'loai_da', 'gia_cong', 'H', 'W', 'L', 'usd_m3', 'priority_score']], 
                 use_container_width=True
             )
             
@@ -171,10 +176,16 @@ def render_processing_stage(df):
                 input_priority = filtered_df['priority_score'].max()  # Use max priority as reference
                 
                 # Predict price for the specific input dimensions
-                X_input = [[input_priority, st.session_state.width, st.session_state.length]]
+                X_input = pd.DataFrame({
+                    'priority_score': [input_priority],
+                    'W': [st.session_state.width],
+                    'L': [st.session_state.length]
+                })
                 predicted_price = st.session_state.price_model.predict(X_input)[0]
-                
-                prediction_text = f"""Based on multi-linear regression analysis:
+                # Apply the transformation formula
+                final_predicted_price = apply_price_transformation(predicted_price)
+
+                prediction_text = f"""🤖 Based on multi-linear regression analysis:
                 
 For your specific stone ({st.session_state.stone_type}, {st.session_state.processing_type}):
 - Height: {st.session_state.height}cm
@@ -182,7 +193,7 @@ For your specific stone ({st.session_state.stone_type}, {st.session_state.proces
 - Length: {st.session_state.length}cm
 - Priority Score: {input_priority:.1f}
 
-**Predicted Price: ${predicted_price:.2f}/m²**
+**Predicted Price: ${final_predicted_price:.2f}/m³**
 
 The model considers priority score, width, and length to provide a more accurate prediction."""
                 
@@ -199,26 +210,3 @@ The model considers priority score, width, and length to provide a more accurate
             
             st.markdown('</div>', unsafe_allow_html=True)
             time.sleep(2)
-            
-        #     # Ask for exact product search
-        #     st.markdown('<div class="ai-response">', unsafe_allow_html=True)
-        #     stream_container7 = st.empty()
-        #     stream_text("Would you like me to search for products with specific length and width dimensions?", stream_container7)
-        #     st.markdown('</div>', unsafe_allow_html=True)
-            
-        #     col1, col2 = st.columns(2)
-        #     with col1:
-        #         if st.button("Yes, Find Exact Products", use_container_width=True):
-        #             st.session_state.stage = 'exact_search'
-        #             st.rerun()
-            
-        #     with col2:
-        #         if st.button("Show Final Report", use_container_width=True):
-        #             st.session_state.stage = 'report'
-        #             st.rerun()
-        
-        # else:
-        #     st.error("No matching products found in database")
-        #     if st.button("Try Different Parameters"):
-        #         st.session_state.stage = 'input'
-        #         st.rerun()

@@ -44,7 +44,7 @@ def reset_session_state():
 
 def calculate_prediction_results(filtered_df):
     """Calculate prediction results from filtered data."""
-    valid_prices = filtered_df['usd_m2'].dropna()
+    valid_prices = filtered_df['usd_m3'].dropna()
     
     if len(valid_prices) == 0:
         return None
@@ -64,8 +64,8 @@ def format_prediction_text(prediction_results, num_products):
         r2_score = prediction_results.get('r2_score', 0)
         text = f"💰 Multiple Linear Regression Analysis ({num_products} products):\n\n"
         text += f"   • Model R² Score: {r2_score:.3f} (explains {r2_score*100:.1f}% of price variance)\n"
-        text += f"   • Predicted Price Range: ${prediction_results['min_price']:.2f} - ${prediction_results['max_price']:.2f} USD/m²\n"
-        text += f"   • Average Predicted Price: ${prediction_results['avg_price']:.2f} USD/m²\n"
+        text += f"   • Predicted Price Range: ${prediction_results['min_price']:.2f} - ${prediction_results['max_price']:.2f} USD/m³\n"
+        text += f"   • Average Predicted Price: ${prediction_results['avg_price']:.2f} USD/m³\n"
         text += f"   • Model Confidence: {prediction_results['confidence']:.0f}%\n\n"
         
         # Add coefficient information
@@ -76,15 +76,15 @@ def format_prediction_text(prediction_results, num_products):
     
     elif method == 'statistical':
         text = f"💰 Statistical Analysis ({num_products} products):\n\n"
-        text += f"   • Price Range: ${prediction_results['min_price']:.2f} - ${prediction_results['max_price']:.2f} USD/m²\n"
-        text += f"   • Average Price: ${prediction_results['avg_price']:.2f} USD/m²\n"
+        text += f"   • Price Range: ${prediction_results['min_price']:.2f} - ${prediction_results['max_price']:.2f} USD/m³\n"
+        text += f"   • Average Price: ${prediction_results['avg_price']:.2f} USD/m³\n"
         text += f"   • Confidence: {prediction_results['confidence']:.0f}%\n"
         text += f"   • Note: Insufficient data for regression modeling"
     
     else:
         text = f"💰 Fallback Analysis ({num_products} products):\n\n"
-        text += f"   • Price Range: ${prediction_results['min_price']:.2f} - ${prediction_results['max_price']:.2f} USD/m²\n"
-        text += f"   • Average Price: ${prediction_results['avg_price']:.2f} USD/m²\n"
+        text += f"   • Price Range: ${prediction_results['min_price']:.2f} - ${prediction_results['max_price']:.2f} USD/m³\n"
+        text += f"   • Average Price: ${prediction_results['avg_price']:.2f} USD/m³\n"
         text += f"   • Confidence: {prediction_results['confidence']:.0f}%"
     
     return text

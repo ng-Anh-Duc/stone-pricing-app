@@ -13,7 +13,6 @@ def render_input_stage(df):
     with col1:
         unique_stones = get_unique_values(df, 'loai_da')
         stone_options = [
-            "BAZAN",
             "BAZAN ĐEN", 
             "BAZAN XÁM",
             "BAZAN TỔ ONG",
