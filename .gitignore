@@ -4,11 +4,6 @@ credentials.json
 *.key
 *.pem
 
-# Data files (optional - you might want to include initial data)
-data/
-*.csv
-*.xlsx
-
 # Python
 __pycache__/
 *.py[cod]
