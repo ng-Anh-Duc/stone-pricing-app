@@ -4,125 +4,111 @@ Main Streamlit application for AI Stone Price Predictor.
 
 import streamlit as st
 from datetime import datetime
-import os
+import logging
+import pandas as pd
+
+# Import utilities
+from utils.data_loader import DataManager
+from utils.google_sheets_sync import GoogleSheetsSync
 
 # Import configuration
 from config.settings import PAGE_CONFIG
 from config.styles import get_custom_css, get_header_style
-
-# Import utilities
-from utils.data_loader import load_data, get_data_info, force_reload_data
 from utils.ui_helpers import initialize_session_state
-from utils.google_sheets_sync import GoogleSheetsSync
-
-# Import components
 from components.input_stage import render_input_stage
 from components.processing_stage import render_processing_stage
-from dotenv import load_dotenv
 
-# Load environment variables
-load_dotenv()
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Initialize DataManager
+data_manager = DataManager()
+
+
+def get_data_info(df: pd.DataFrame):
+    """Return dataset info for sidebar display"""
+    if df.empty:
+        return {"row_count": 0, "last_synced": None}
+
+    info = {"row_count": df.shape[0]}
+    if "last_updated" in df.columns and not df["last_updated"].isna().all():
+        info["last_synced"] = df["last_updated"].iloc[0]
+    return info
 
 
 def show_data_sync_sidebar():
-    """Add data sync controls to Streamlit sidebar"""
+    """Sidebar for data sync and info"""
     with st.sidebar:
         st.markdown("### 📊 Data Management")
 
-        info = get_data_info()
-        if info:
-            col1, col2 = st.columns(2)
-            with col1:
-                st.metric("Rows", f"{info['row_count']:,}")
-            with col2:
-                if info.get("last_synced"):
-                    try:
-                        last_sync = datetime.strptime(info["last_synced"], "%Y-%m-%d %H:%M:%S")
-                        hours_ago = (datetime.now() - last_sync).total_seconds() / 3600
-                        if hours_ago < 1:
-                            time_str = "< 1 hour ago"
-                        elif hours_ago < 24:
-                            time_str = f"{int(hours_ago)} hours ago"
-                        else:
-                            time_str = f"{int(hours_ago/24)} days ago"
-                        st.metric("Last Sync", time_str)
-                    except Exception:
-                        st.metric("Last Sync", "Unknown")
-                else:
-                    st.metric("Last Sync", "Never")
+        df = data_manager.load_data()
+        info = get_data_info(df)
+        st.metric("Rows", f"{info['row_count']:,}")
+        st.metric("Last Sync", info["last_synced"] or "Unknown")
 
-        # Sync button if secrets available
         if "google_credentials" in st.secrets and "GOOGLE_SPREADSHEET_ID" in st.secrets:
-            if st.button("🔄 Sync from Google Sheets", use_container_width=True):
+            if st.button("🔄 Sync from Google Drive", use_container_width=True):
                 try:
-                    with st.spinner("Syncing data from Google Sheets..."):
-                        sync = GoogleSheetsSync()  # auto-uses st.secrets
+                    with st.spinner("Syncing data from Google Drive..."):
+                        sync = GoogleSheetsSync()
                         success = sync.sync()
                     if success:
-                        st.success("✅ Data synced successfully! Reloading data...")
-                        df = force_reload_data()
-                        st.session_state["data"] = df  # keep fresh data in session
+                        st.success("✅ Data synced successfully!")
+                        data_manager.load_data(force_reload=True)
                         st.rerun()
                     else:
                         st.error("❌ Sync failed. Check logs.")
                 except Exception as e:
                     st.error(f"❌ Sync error: {str(e)}")
         else:
-            st.warning("⚠️ Google Sheets sync not configured")
+            st.warning("⚠️ Google sync not configured")
             with st.expander("Setup Instructions"):
                 st.markdown("""
-                To enable Google Sheets sync:
+                To enable Google Sheets/Drive sync:
                 1. Add `GOOGLE_SPREADSHEET_ID` to your Streamlit secrets
                 2. Add `[google_credentials]` block with your service account JSON
                 """)
 
 
 def check_data_freshness():
-    """Check if data is fresh and show warning if stale"""
-    info = get_data_info()
-    if info and info.get("last_synced"):
+    """Warn if data is stale"""
+    df = data_manager.load_data()
+    info = get_data_info(df)
+    if info.get("last_synced"):
         try:
             last_sync = datetime.strptime(info["last_synced"], "%Y-%m-%d %H:%M:%S")
             hours_old = (datetime.now() - last_sync).total_seconds() / 3600
             if hours_old > 48:
-                st.warning(
-                    f"⚠️ Data is {int(hours_old/24)} days old. Consider syncing for latest updates."
-                )
+                st.warning(f"⚠️ Data is {int(hours_old/24)} days old. Consider syncing.")
         except Exception:
             pass
 
 
 def main():
-    """Main application function."""
-    # Page setup
     st.set_page_config(**PAGE_CONFIG)
     st.markdown(get_custom_css(), unsafe_allow_html=True)
     initialize_session_state()
 
-    # Sidebar sync controls
+    # Sidebar
     show_data_sync_sidebar()
 
-    # Load data (prefer session cache if available)
-    if "data" in st.session_state:
-        df = st.session_state["data"]
-    else:
-        df = load_data()
-        st.session_state["data"] = df  # cache in session for consistency
+    # Load dataset
+    df = data_manager.load_data()
 
     # Header
     st.markdown(get_header_style(), unsafe_allow_html=True)
 
-    # Freshness check
+    # Freshness warning
     check_data_freshness()
 
     # Stage routing
-    if st.session_state.stage == "input":
+    if st.session_state.stage == 'input':
         render_input_stage(df)
-    elif st.session_state.stage == "processing":
+    elif st.session_state.stage == 'processing':
         render_processing_stage(df)
     else:
-        st.error("Unknown application stage. Resetting to input.")
-        st.session_state.stage = "input"
+        st.error("Unknown stage. Resetting...")
+        st.session_state.stage = 'input'
         st.rerun()
 
 
