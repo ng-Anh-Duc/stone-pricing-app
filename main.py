@@ -59,8 +59,12 @@ def show_data_sync_sidebar():
                     st.metric("Last Sync", "Never")
         
         # Check if credentials exist before showing sync button
-        credentials_exist = os.path.exists(os.getenv('GOOGLE_CREDENTIALS_PATH', 'credentials.json'))
-        spreadsheet_id_set = bool(os.getenv('GOOGLE_SPREADSHEET_ID'))
+        if 'google_credentials' in st.secrets and 'GOOGLE_SPREADSHEET_ID' in st.secrets:
+            credentials_exist = True
+            spreadsheet_id_set = True
+        else:
+            credentials_exist = os.path.exists(os.getenv('GOOGLE_CREDENTIALS_PATH', 'credentials.json'))
+            spreadsheet_id_set = bool(os.getenv('GOOGLE_SPREADSHEET_ID'))
         
         if credentials_exist and spreadsheet_id_set:
             # Sync button
