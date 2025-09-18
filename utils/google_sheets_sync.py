@@ -45,7 +45,7 @@ class GoogleSheetsSync:
             if isinstance(self.credentials_path, dict):
                 # Direct credentials dict (from Streamlit secrets)
                 creds = service_account.Credentials.from_service_account_info(
-                    self.credentials_path,
+                    dict(self.credentials_path),
                     scopes=[
                         'https://www.googleapis.com/auth/drive.readonly',
                         'https://www.googleapis.com/auth/spreadsheets.readonly'
