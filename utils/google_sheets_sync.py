@@ -41,13 +41,28 @@ class GoogleSheetsSync:
     def _authenticate(self):
         """Authenticate with Google Drive and Sheets APIs"""
         try:
-            creds = service_account.Credentials.from_service_account_file(
-                self.credentials_path,
-                scopes=[
-                    'https://www.googleapis.com/auth/drive.readonly',
-                    'https://www.googleapis.com/auth/spreadsheets.readonly'
-                ]
-            )
+            # Handle both file path and dict credentials
+            if isinstance(self.credentials_path, dict):
+                # Direct credentials dict (from Streamlit secrets)
+                creds = service_account.Credentials.from_service_account_info(
+                    self.credentials_path,
+                    scopes=[
+                        'https://www.googleapis.com/auth/drive.readonly',
+                        'https://www.googleapis.com/auth/spreadsheets.readonly'
+                    ]
+                )
+            elif isinstance(self.credentials_path, str) and os.path.exists(self.credentials_path):
+                # File path (local development)
+                creds = service_account.Credentials.from_service_account_file(
+                    self.credentials_path,
+                    scopes=[
+                        'https://www.googleapis.com/auth/drive.readonly',
+                        'https://www.googleapis.com/auth/spreadsheets.readonly'
+                    ]
+                )
+            else:
+                raise ValueError(f"Invalid credentials: {type(self.credentials_path)}")
+                
             drive_service = build('drive', 'v3', credentials=creds)
             sheets_service = build('sheets', 'v4', credentials=creds)
             logger.info("Successfully authenticated with Google APIs")
