@@ -1,7 +1,7 @@
 """Input stage component for the Stone Price Predictor app."""
 
 import streamlit as st
-from utils.data_loader import get_unique_values
+from utils.data_loader3 import get_unique_values
 
 def render_input_stage(df):
     """Render the input stage of the application."""

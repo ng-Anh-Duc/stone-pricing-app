@@ -13,7 +13,7 @@ from config.settings import PAGE_CONFIG
 from config.styles import get_custom_css, get_header_style
 
 # Import utilities
-from utils.data_loader import load_data, get_data_info, force_reload_data
+from utils.data_loader3 import load_data, get_data_info, force_reload_data
 from utils.ui_helpers import initialize_session_state
 from utils.google_sheets_sync3 import GoogleSheetsSync
 

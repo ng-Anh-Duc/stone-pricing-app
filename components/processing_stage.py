@@ -8,7 +8,7 @@ import streamlit as st
 from sklearn.linear_model import LinearRegression
 import pandas as pd
 
-from utils.data_loader import filter_data
+from utils.data_loader3 import filter_data
 from utils.scoring import calculate_priority_score
 from utils.ui_helpers import stream_text, calculate_prediction_results, format_prediction_text
 from config.settings import UI_CONFIG
