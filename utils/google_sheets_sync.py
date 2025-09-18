@@ -1,33 +1,31 @@
-# utils/google_sheets_sync.py
 import pandas as pd
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
-import os
-from datetime import datetime
+from googleapiclient.http import MediaIoBaseDownload
+import io
 import logging
 from pathlib import Path
-import io
-from googleapiclient.http import MediaIoBaseDownload
-
-import streamlit as st  # 👈 add Streamlit to read secrets
+from datetime import datetime
+import streamlit as st  # 👈 used for secrets
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
 class GoogleSheetsSync:
     def __init__(self, credentials=None, file_id=None):
         """Initialize Google Drive/Sheets sync"""
         # Use Streamlit secrets if not passed explicitly
-        self.credentials_info = credentials or st.secrets["google_credentials"].to_dict()
-        self.file_id = file_id or st.secrets["GOOGLE_SPREADSHEET_ID"]
+        self.credentials_info = credentials or dict(st.secrets["google_credentials"])
+        self.file_id = file_id or st.secrets.get("GOOGLE_SPREADSHEET_ID")
 
         if not self.file_id:
             raise ValueError("GOOGLE_SPREADSHEET_ID must be set in Streamlit secrets")
 
         self.drive_service, self.sheets_service = self._authenticate()
 
-        # Set up data directories
+        # Local data directory
         self.base_dir = Path(__file__).parent.parent
         self.data_dir = self.base_dir / "data"
         self.data_dir.mkdir(parents=True, exist_ok=True)
@@ -51,7 +49,7 @@ class GoogleSheetsSync:
             raise
 
     def download_excel_from_drive(self):
-        """Download Excel file from Google Drive"""
+        """Download Excel file from Google Drive by file_id"""
         try:
             file_metadata = self.drive_service.files().get(
                 fileId=self.file_id, fields="name,mimeType"
@@ -81,17 +79,18 @@ class GoogleSheetsSync:
             raise
 
     def save_latest_data(self, df, filename="latest_data.csv"):
-        """Save data as CSV for the app to use"""
+        """Save data as CSV (latest + timestamped snapshot)"""
         try:
-            latest_file = self.data_dir / "latest_data.csv"
+            latest_file = self.data_dir / filename
             df.to_csv(latest_file, index=False)
             logger.info(f"💾 Saved latest data to: {latest_file}")
 
             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            df["last_updated"] = timestamp
+            df_with_ts = df.copy()
+            df_with_ts["last_updated"] = timestamp
 
-            timestamp_file = self.data_dir / f"data_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
-            df.to_csv(timestamp_file, index=False)
+            snapshot_file = self.data_dir / f"data_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+            df_with_ts.to_csv(snapshot_file, index=False)
 
             return latest_file
         except Exception as e:
