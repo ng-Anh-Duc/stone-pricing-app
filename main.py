@@ -27,12 +27,22 @@ data_manager = DataManager()
 
 def get_data_info(df: pd.DataFrame):
     """Return dataset info for sidebar display"""
-    if df.empty:
-        return {"row_count": 0, "last_synced": None}
+    if df is None or df.empty:
+        return {
+            "row_count": 0,
+            "last_synced": None,
+            "columns": [],
+        }
 
-    info = {"row_count": df.shape[0]}
+    info = {
+        "row_count": df.shape[0],
+        "last_synced": None,
+        "columns": list(df.columns),
+    }
+
     if "last_updated" in df.columns and not df["last_updated"].isna().all():
-        info["last_synced"] = df["last_updated"].iloc[0]
+        info["last_synced"] = str(df["last_updated"].iloc[0])
+
     return info
 
 
@@ -43,8 +53,9 @@ def show_data_sync_sidebar():
 
         df = data_manager.load_data()
         info = get_data_info(df)
-        st.metric("Rows", f"{info['row_count']:,}")
-        st.metric("Last Sync", info["last_synced"] or "Unknown")
+
+        st.metric("Rows", f"{info.get('row_count', 0):,}")
+        st.metric("Last Sync", info.get("last_synced") or "Unknown")
 
         if "google_credentials" in st.secrets and "GOOGLE_SPREADSHEET_ID" in st.secrets:
             if st.button("🔄 Sync from Google Drive", use_container_width=True):
@@ -74,9 +85,11 @@ def check_data_freshness():
     """Warn if data is stale"""
     df = data_manager.load_data()
     info = get_data_info(df)
-    if info.get("last_synced"):
+    last_synced = info.get("last_synced")
+
+    if last_synced:
         try:
-            last_sync = datetime.strptime(info["last_synced"], "%Y-%m-%d %H:%M:%S")
+            last_sync = datetime.strptime(last_synced, "%Y-%m-%d %H:%M:%S")
             hours_old = (datetime.now() - last_sync).total_seconds() / 3600
             if hours_old > 48:
                 st.warning(f"⚠️ Data is {int(hours_old/24)} days old. Consider syncing.")
