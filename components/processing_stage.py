@@ -8,13 +8,13 @@ import streamlit as st
 from sklearn.linear_model import LinearRegression
 import pandas as pd
 
-from utils.data_loader3 import filter_data
+from utils.data_loader import filter_data
 from utils.scoring import calculate_priority_score
 from utils.ui_helpers import stream_text, calculate_prediction_results, format_prediction_text
 from config.settings import UI_CONFIG
 
 def apply_price_transformation(raw_price):
-    """Apply the price transformation formula: (output + 8) * 10 / 0.8"""
+    """Apply the price transformation formula: output + (7 * 10) / 0.8"""
     return raw_price + (7 * 10) / 0.8
 
 def create_scatter_plot(filtered_df):

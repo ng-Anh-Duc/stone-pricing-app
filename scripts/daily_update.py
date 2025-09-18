@@ -3,7 +3,7 @@ import sys
 from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent))
 
-from utils.google_sheets_sync3 import GoogleSheetsSync
+from utils.google_sheets_sync import GoogleSheetsSync
 import logging
 from datetime import datetime
 import os
@@ -36,7 +36,10 @@ def main():
         
         if success:
             # Clean up old files (keep last 7 days)
-            sync.cleanup_old_files(days_to_keep=7)
+            try:
+                sync.cleanup_old_files(days_to_keep=7)
+            except Exception as e:
+                logger.warning(f"Cleanup failed: {e}")
             logger.info("Daily sync completed successfully")
             return 0
         else:

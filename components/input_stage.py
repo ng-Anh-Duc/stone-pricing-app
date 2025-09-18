@@ -1,7 +1,7 @@
 """Input stage component for the Stone Price Predictor app."""
 
 import streamlit as st
-from utils.data_loader3 import get_unique_values
+from utils.data_loader import get_unique_values
 
 def render_input_stage(df):
     """Render the input stage of the application."""
@@ -12,7 +12,7 @@ def render_input_stage(df):
     
     with col1:
         unique_stones = get_unique_values(df, 'loai_da')
-        stone_options = [
+        stone_options = unique_stones if unique_stones else [
             "BAZAN ĐEN", 
             "BAZAN XÁM",
             "BAZAN TỔ ONG",
@@ -24,12 +24,12 @@ def render_input_stage(df):
             "GRANITE XÁM",
             "GRANITE ĐỎ"
         ]
-        # Use either unique_stones OR stone_options, not both
         stone_type = st.selectbox("Stone Type", stone_options)
     
     with col2:
         unique_processing = get_unique_values(df, 'gia_cong')
-        processing_type = st.selectbox("Processing Method", unique_processing)
+        processing_options = unique_processing if unique_processing else ["SƠN", "MỜ", "ĐÁNH BÓNG"]
+        processing_type = st.selectbox("Processing Method", processing_options)
     
     with col3:
         height = st.number_input("Height (cm)", min_value=0.1, max_value=100.0, value=8.0, step=0.1)

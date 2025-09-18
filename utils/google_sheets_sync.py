@@ -5,21 +5,27 @@ from googleapiclient.http import MediaIoBaseDownload
 import io
 import logging
 from pathlib import Path
-from datetime import datetime
-import streamlit as st  # 👈 used for secrets
+from datetime import datetime, timedelta
+import streamlit as st
 
-# Set up logging
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
 
 class GoogleSheetsSync:
     def __init__(self, credentials=None, file_id=None):
         """Initialize Google Drive/Sheets sync"""
         # Use Streamlit secrets if not passed explicitly
-        self.credentials_info = credentials or dict(st.secrets["google_credentials"])
-        self.file_id = file_id or st.secrets.get("GOOGLE_SPREADSHEET_ID")
+        if credentials:
+            self.credentials_info = credentials
+        else:
+            # Accept either "google_credentials" or fallback name
+            if "google_credentials" in st.secrets:
+                self.credentials_info = dict(st.secrets["google_credentials"])
+            elif "gcp_service_account" in st.secrets:
+                self.credentials_info = dict(st.secrets["gcp_service_account"])
+            else:
+                raise ValueError("Missing google credentials in Streamlit secrets")
 
+        self.file_id = file_id or st.secrets.get("GOOGLE_SPREADSHEET_ID")
         if not self.file_id:
             raise ValueError("GOOGLE_SPREADSHEET_ID must be set in Streamlit secrets")
 
@@ -55,8 +61,8 @@ class GoogleSheetsSync:
                 fileId=self.file_id, fields="name,mimeType"
             ).execute()
 
-            logger.info(f"⬇️ Downloading file: {file_metadata['name']}")
-            logger.info(f"📂 File type: {file_metadata['mimeType']}")
+            logger.info(f"⬇️ Downloading file: {file_metadata.get('name')}")
+            logger.info(f"📂 File type: {file_metadata.get('mimeType')}")
 
             request = self.drive_service.files().get_media(fileId=self.file_id)
             file_content = io.BytesIO()
@@ -70,7 +76,6 @@ class GoogleSheetsSync:
 
             file_content.seek(0)
             df = pd.read_excel(file_content, sheet_name=0)
-
             logger.info(f"✅ Loaded {len(df)} rows from Excel file")
             return df
 
@@ -113,3 +118,17 @@ class GoogleSheetsSync:
         except Exception as e:
             logger.error(f"❌ Sync failed: {e}")
             return False
+
+    def cleanup_old_files(self, days_to_keep: int = 7):
+        """Remove old snapshot CSVs older than days_to_keep (keeps latest_data.csv)."""
+        cutoff = datetime.now() - timedelta(days=days_to_keep)
+        for f in self.data_dir.glob("data_*.csv"):
+            try:
+                # parse timestamp from filename: data_YYYYmmdd_HHMMSS.csv
+                stat = f.stat()
+                mtime = datetime.fromtimestamp(stat.st_mtime)
+                if mtime < cutoff:
+                    f.unlink()
+                    logger.info(f"Removed old snapshot: {f}")
+            except Exception as e:
+                logger.warning(f"Failed to remove {f}: {e}")
