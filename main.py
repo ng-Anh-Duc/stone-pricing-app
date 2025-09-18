@@ -73,7 +73,9 @@ def show_data_sync_sidebar():
                         use_container_width=True):
                 try:
                     with st.spinner("Syncing data from Google Sheets..."):
-                        sync = GoogleSheetsSync()
+                        sync = GoogleSheetsSync(
+                            credentials_path=st.secrets["google_credentials"], 
+                            file_id=st.secrets["GOOGLE_SPREADSHEET_ID"])
                         success = sync.sync()
                         
                     if success:
