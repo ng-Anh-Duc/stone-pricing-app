@@ -36,7 +36,7 @@ class GoogleSheetsSync:
         self.data_dir = self.base_dir / 'data'
         
         # Create directories if they don't exist
-        self.data_dir.mkdir(exist_ok=True)
+        self.data_dir.mkdir(parents=True, exist_ok=True)
     
     def _authenticate(self):
         """Authenticate with Google Drive and Sheets APIs"""

@@ -43,6 +43,10 @@ class DataManager:
     def load_data(self, force_reload=False):
         """Load and preprocess the stone price data with auto-reload"""
         try:
+            # If no file, return empty dataframe
+            if self._data_path is None:
+                return pd.DataFrame()
+            
             if force_reload or self._should_reload():
                 # Load the data
                 df = pd.read_csv(self._data_path)
