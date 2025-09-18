@@ -3,7 +3,7 @@ import sys
 from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent))
 
-from utils.google_sheets_sync import GoogleSheetsSync
+from utils.google_sheets_sync3 import GoogleSheetsSync
 import logging
 from datetime import datetime
 import os
