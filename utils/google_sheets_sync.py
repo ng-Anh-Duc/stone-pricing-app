@@ -21,10 +21,10 @@ class GoogleSheetsSync:
     def __init__(self, credentials_path=None, file_id=None):
         """Initialize Google Drive sync for Excel files"""
         # Get from environment variables if not provided
-        self.credentials_path = credentials_path or get_credentials()
-        # os.getenv('GOOGLE_CREDENTIALS_PATH', 'credentials.json')
-        self.file_id = file_id or get_spreadsheet_id()
-        # os.getenv('GOOGLE_SPREADSHEET_ID')  # Actually a Drive file ID
+        self.credentials_path = credentials_path or os.getenv('GOOGLE_CREDENTIALS_PATH', 'credentials.json')
+        # or get_credentials()
+        self.file_id = file_id or os.getenv('GOOGLE_SPREADSHEET_ID')  # Actually a Drive file ID
+        # or get_spreadsheet_id()
         
         if not self.file_id:
             raise ValueError("GOOGLE_SPREADSHEET_ID must be set")
