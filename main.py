@@ -11,7 +11,7 @@ from config.settings import PAGE_CONFIG
 from config.styles import get_custom_css, get_header_style
 
 # Import utilities
-from utils.data_loader3 import load_data, get_data_info, force_reload_data
+from utils.data_loader import load_data, get_data_info, force_reload_data
 from utils.ui_helpers import initialize_session_state
 from utils.google_sheets_sync import GoogleSheetsSync
 
@@ -56,11 +56,12 @@ def show_data_sync_sidebar():
             if st.button("🔄 Sync from Google Sheets", use_container_width=True):
                 try:
                     with st.spinner("Syncing data from Google Sheets..."):
-                        sync = GoogleSheetsSync()  # 👈 auto-uses st.secrets
+                        sync = GoogleSheetsSync()  # auto-uses st.secrets
                         success = sync.sync()
                     if success:
-                        st.success("✅ Data synced successfully!")
-                        force_reload_data()
+                        st.success("✅ Data synced successfully! Reloading data...")
+                        df = force_reload_data()
+                        st.session_state["data"] = df  # keep fresh data in session
                         st.rerun()
                     else:
                         st.error("❌ Sync failed. Check logs.")
@@ -79,18 +80,21 @@ def show_data_sync_sidebar():
 def check_data_freshness():
     """Check if data is fresh and show warning if stale"""
     info = get_data_info()
-    if info and info.get('last_synced'):
+    if info and info.get("last_synced"):
         try:
-            last_sync = datetime.strptime(info['last_synced'], "%Y-%m-%d %H:%M:%S")
+            last_sync = datetime.strptime(info["last_synced"], "%Y-%m-%d %H:%M:%S")
             hours_old = (datetime.now() - last_sync).total_seconds() / 3600
             if hours_old > 48:
-                st.warning(f"⚠️ Data is {int(hours_old/24)} days old. Consider syncing for latest updates.")
+                st.warning(
+                    f"⚠️ Data is {int(hours_old/24)} days old. Consider syncing for latest updates."
+                )
         except Exception:
             pass
 
 
 def main():
     """Main application function."""
+    # Page setup
     st.set_page_config(**PAGE_CONFIG)
     st.markdown(get_custom_css(), unsafe_allow_html=True)
     initialize_session_state()
@@ -98,8 +102,12 @@ def main():
     # Sidebar sync controls
     show_data_sync_sidebar()
 
-    # Load data
-    df = load_data()
+    # Load data (prefer session cache if available)
+    if "data" in st.session_state:
+        df = st.session_state["data"]
+    else:
+        df = load_data()
+        st.session_state["data"] = df  # cache in session for consistency
 
     # Header
     st.markdown(get_header_style(), unsafe_allow_html=True)
@@ -108,13 +116,13 @@ def main():
     check_data_freshness()
 
     # Stage routing
-    if st.session_state.stage == 'input':
+    if st.session_state.stage == "input":
         render_input_stage(df)
-    elif st.session_state.stage == 'processing':
+    elif st.session_state.stage == "processing":
         render_processing_stage(df)
     else:
         st.error("Unknown application stage. Resetting to input.")
-        st.session_state.stage = 'input'
+        st.session_state.stage = "input"
         st.rerun()
 
 
